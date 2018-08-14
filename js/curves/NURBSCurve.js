@@ -28,7 +28,6 @@ THREE.NURBSCurve = function ( degree, knots /* array of reals */, controlPoints 
 		// ensure Vector4 for control points
 		var point = controlPoints[ i ];
 		this.controlPoints[ i ] = new THREE.Vector4( point.x, point.y, point.z, point.w );
-
 	}
 
 };

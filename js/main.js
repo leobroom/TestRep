@@ -63,17 +63,17 @@ var object = new THREE.Mesh(geom, material2);
 // SPHERE
 // ------------------------------------------------
 
-var geometry = new THREE.SphereGeometry( 0.03, 4, 4);
+var spHgeometry = new THREE.SphereGeometry( 0.04, 4, 4);
 var yellow = new THREE.MeshBasicMaterial( {color: 0xffff00} );
 var red = new THREE.MeshBasicMaterial( {color: 0xff0000} );
-var yellowPt = new THREE.Mesh( geometry, yellow );
-var redPt = new THREE.Mesh( geometry, red );
-//scene.add( yellowPt );
-//scene.add( redPt );
+// var yellowPt = new THREE.Mesh( spHgeometry, yellow );
+// var redPt = new THREE.Mesh( spHgeometry, red );
+// scene.add( yellowPt );
+// scene.add( redPt );
 
 
-yellowPt.position.copy(v0);
-redPt.position.copy(v2);
+// yellowPt.position.copy(v0);
+// redPt.position.copy(v2);
 
 // ------------------------------------------------
 // Wireframe
@@ -98,59 +98,47 @@ wireframe.scale.set( 1, 1, 1 );
 // NurbsCurve
 // ------------------------------------------------
 var group = new THREE.Group();
-    group.position.y = 0;
-
 scene.add( group );
 
-var nurbsControlPoints = [];
-var nurbsKnots = [];
+
 var nurbsDegree = 2;
 
-for ( var i = 0; i <= nurbsDegree; i ++ ) 
-{
-    nurbsKnots.push( 0 );
-}
+var nurbsControlPointsUp= [
+    new THREE.Vector4 ( -5 ,2.5, 0,1),
+    new THREE.Vector4 ( -2.5 ,3, 0,1),
+    new THREE.Vector4 ( 2.5 ,2, 0,1),
+    new THREE.Vector4 ( 5 ,2.5, 0,1),
+];
 
-for ( var i = 0, j = 3; i < j; i ++ ) 
-{
-    nurbsControlPoints.push
-    (
-        new THREE.Vector4
-        (
-		    Math.random() ,
-		    Math.random() ,
-		    Math.random() ,
-		    1
-	    )
-    );
-    
-    var knot = ( i + 1 ) / ( j - nurbsDegree );
+var nurbsControlPointsDown= [
+    new THREE.Vector4 ( -5 ,-2.5, 0,4),
+    new THREE.Vector4 ( -3 ,-3, 0,1),
+    new THREE.Vector4 ( 2 ,-2, 0,2),
+    new THREE.Vector4 ( 5 ,-2.5, 0,1),
+];
 
-    console.log("i: " + i);
-    console.log("j: " + j);
-    console.log("knot: " + knot);
-    console.log("---------------");
-
-    nurbsKnots.push( THREE.Math.clamp( knot, 0, 1 ) );
-}
-
-var nurbsCurve = new THREE.NURBSCurve( nurbsDegree, nurbsKnots, nurbsControlPoints );
-var nurbsGeometry = new THREE.BufferGeometry();
-    nurbsGeometry.setFromPoints( nurbsCurve.getPoints( 200 ) );
-    
+var pointValue =200;
+var nurbsKnots = NURBSHelper.getNurbsKnots(nurbsControlPointsUp, nurbsDegree);
+var pointArray = Triangle.createRows(nurbsControlPointsUp,nurbsControlPointsDown,5);
 var nurbsMaterial = new THREE.LineBasicMaterial( { linewidth: 0.1, color: 0xFFFFFF } );
-var nurbsLine = new THREE.Line( nurbsGeometry, nurbsMaterial );
-	nurbsLine.position.set( 0, 0, 0 );
-    group.add( nurbsLine );
-    
-var nurbsControlPointsGeometry = new THREE.BufferGeometry();
-    nurbsControlPointsGeometry.setFromPoints( nurbsCurve.controlPoints );
-    
-var nurbsControlPointsMaterial = new THREE.LineBasicMaterial( { linewidth: 2, color: 0xFF00FF, opacity: 0.75, transparent: true } );
-var nurbsControlPointsLine = new THREE.Line( nurbsControlPointsGeometry, nurbsControlPointsMaterial );
-	nurbsControlPointsLine.position.copy( nurbsLine.position );
-	group.add( nurbsControlPointsLine );
 
+pointArray.forEach(cps => {
+
+    var nC = new THREE.NURBSCurve( nurbsDegree, nurbsKnots, cps );
+    var nCGeo= new THREE.BufferGeometry();
+    nCGeo.setFromPoints( nC.getPoints( pointValue ) );
+    var nLine = new THREE.Line( nCGeo, nurbsMaterial );
+    group.add( nLine );
+
+    cps.forEach(vec4 => {
+
+        var pt = new THREE.Mesh( spHgeometry, red );
+        scene.add( pt );
+    
+        pt.position.copy(new THREE.Vector3(vec4.x, vec4.y, vec4.z))
+    });
+    
+});
 
 renderer.render(scene, camera);
 
