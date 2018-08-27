@@ -52,7 +52,7 @@ geom.computeFaceNormals();
 geom.castShadow = false; //default is false
 geom.receiveShadow = false; //default
 
-var material2 = new THREE.MeshPhongMaterial ({ color: "#433F81"  });
+var material2 = new THREE.MeshPhongMaterial({ color: "#433F81" });
 material2.side = THREE.DoubleSide;
 
 var object = new THREE.Mesh(geom, material2);
@@ -63,9 +63,9 @@ var object = new THREE.Mesh(geom, material2);
 // SPHERE
 // ------------------------------------------------
 
-var spHgeometry = new THREE.SphereGeometry( 0.04, 4, 4);
-var yellow = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-var red = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+var spHgeometry = new THREE.SphereGeometry(0.04, 4, 4);
+var yellow = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+var red = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 // var yellowPt = new THREE.Mesh( spHgeometry, yellow );
 // var redPt = new THREE.Mesh( spHgeometry, red );
 // scene.add( yellowPt );
@@ -80,65 +80,192 @@ var red = new THREE.MeshBasicMaterial( {color: 0xff0000} );
 // ------------------------------------------------
 
 // THREE.Wireframe ( WireframeGeometry2, LineMaterial )
-var geometry = new THREE.WireframeGeometry2( geom );
+var geometry = new THREE.WireframeGeometry2(geom);
 
-var matLine = new THREE.LineMaterial( {
+var matLine = new THREE.LineMaterial({
     color: 0xffffff,
     linewidth: 0.001, // in pixels
     //resolution:  // to be set by renderer, eventually
     dashed: false
-} );
+});
 
-wireframe = new THREE.Wireframe( geometry, matLine );
+wireframe = new THREE.Wireframe(geometry, matLine);
 wireframe.computeLineDistances();
-wireframe.scale.set( 1, 1, 1 );
+wireframe.scale.set(1, 1, 1);
 //scene.add( wireframe );
 
 // ------------------------------------------------
 // NurbsCurve
 // ------------------------------------------------
 var group = new THREE.Group();
-scene.add( group );
-
+scene.add(group);
 
 var nurbsDegree = 2;
 
-var nurbsControlPointsUp= [
-    new THREE.Vector4 ( -5 ,2.5, 0,1),
-    new THREE.Vector4 ( -2.5 ,3, 0,1),
-    new THREE.Vector4 ( 2.5 ,2, 0,1),
-    new THREE.Vector4 ( 5 ,2.5, 0,1),
+var nurbsControlPointsUp = [
+    new THREE.Vector4(-5, 2.5, 0, 1),
+    new THREE.Vector4(-2.5, 3, 0, 1),
+    new THREE.Vector4(2.5, 2, 0, 1),
+    new THREE.Vector4(5, 2.5, 0, 1),
 ];
 
-var nurbsControlPointsDown= [
-    new THREE.Vector4 ( -5 ,-2.5, 0,4),
-    new THREE.Vector4 ( -3 ,-3, 0,1),
-    new THREE.Vector4 ( 2 ,-2, 0,2),
-    new THREE.Vector4 ( 5 ,-2.5, 0,1),
+var nurbsControlPointsDown = [
+    new THREE.Vector4(-5, -2.5, 0, 4),
+    new THREE.Vector4(-3, -3, 0, 1),
+    new THREE.Vector4(2, -2, 0, 2),
+    new THREE.Vector4(5, -2.5, 0, 1),
 ];
 
-var pointValue =200;
+var pointValue = 20;
+var uDivision = 40;
+var vDivision = 300;
 var nurbsKnots = NURBSHelper.getNurbsKnots(nurbsControlPointsUp, nurbsDegree);
-var pointArray = Triangle.createRows(nurbsControlPointsUp,nurbsControlPointsDown,5);
-var nurbsMaterial = new THREE.LineBasicMaterial( { linewidth: 0.1, color: 0xFFFFFF } );
+var nurbsMaterial = new THREE.LineBasicMaterial({ linewidth: 0.15, color: 0xFFFFFF });
 
-pointArray.forEach(cps => {
+// ------------------------------------------------
+// NurbsCurves Erstellung
+// ------------------------------------------------
 
-    var nC = new THREE.NURBSCurve( nurbsDegree, nurbsKnots, cps );
-    var nCGeo= new THREE.BufferGeometry();
-    nCGeo.setFromPoints( nC.getPoints( pointValue ) );
-    var nLine = new THREE.Line( nCGeo, nurbsMaterial );
-    group.add( nLine );
+var nurbsCrvs = new Array(vDivision + 1);
 
-    cps.forEach(vec4 => {
+var p = 1.00 / vDivision;
+var cpCount = nurbsControlPointsUp.length;
 
-        var pt = new THREE.Mesh( spHgeometry, red );
-        scene.add( pt );
-    
-        pt.position.copy(new THREE.Vector3(vec4.x, vec4.y, vec4.z))
-    });
-    
+
+for (u = 0; u < vDivision + 1; u++) {
+
+    var pts = new Array(cpCount);
+
+    for (i = 0; i < cpCount; i++) {
+        var vA = nurbsControlPointsUp[i];
+        var vB = nurbsControlPointsDown[i];
+
+        var vC = new THREE.Vector3();
+
+        vC = vC.subVectors(vB, vA);
+        vC.multiplyScalar(u / uDivision);
+        vC.add(vA);
+
+        pts[i] = vC;
+    }
+
+    nurbsCrvs[u] = new THREE.NURBSCurve(nurbsDegree, nurbsKnots, pts);
+}
+
+// ------------------------------------------------
+// NurbsCurves Darstellung
+// ------------------------------------------------
+
+nurbsCrvs.forEach(nurbsCrv => {
+
+    var nCGeo = new THREE.BufferGeometry();
+    nCGeo.setFromPoints(nurbsCrv.getPoints(pointValue));
+    var nLine = new THREE.Line(nCGeo, nurbsMaterial);
+    group.add(nLine);
 });
+
+// ------------------------------------------------
+// CreateParams
+// ------------------------------------------------
+
+// Parameterraum ist 0-1
+var uLength = 1.00 / uDivision;
+
+//Count of Points for each Row
+var aCount = uDivision + 2;
+var bCount = uDivision + 1;
+
+//RowA
+var paramA = new Array(aCount);
+
+paramA[0] = 0;
+paramA[bCount] = 1;
+
+var halfLength = uLength / 2.00;
+
+for (i = 0; i < uDivision; i++) {
+    paramA[i + 1] = uLength * i + halfLength;
+}
+
+//RowB
+
+var paramB = new Array(bCount);
+
+for (i = 0; i <= uDivision; i++)
+    paramB[i] = uLength * i;
+
+//-------------------------------------------
+//Count Even Odd
+//-------------------------------------------
+
+var countVEven = 0;
+var countVOdd = 0;
+
+for (i = 0; i < vDivision + 1; i++) {
+    if ((i % 2) == 0)
+        countVEven++;
+    else
+        countVOdd++;
+}
+
+//-------------------------------------------
+//rowA
+//-------------------------------------------
+
+//THREE.Vector3
+var rowA = new Array(aCount * countVEven);
+
+var count = 0;
+
+//Anzahl der Reihen
+for (v = 0; v < vDivision + 1; v += 2) {
+    for (u = 0; u < aCount; u++) {
+        rowA[count] = nurbsCrvs[v].getPointAt(paramA[u]);
+        count++;
+    }
+}
+
+//-------------------------------------------
+//rowB
+//-------------------------------------------
+
+var rowB = new Array(bCount * countVOdd);
+
+count = 0;
+
+//Anzahl der Reihen
+for (v = 1; v < vDivision + 1; v += 2) {
+    for (u = 0; u < bCount; u++) {
+        rowB[count] = nurbsCrvs[v].getPointAt(paramB[u]);
+        count++;
+    }
+}
+
+
+
+rowA.forEach(cp => {
+    var pt = new THREE.Mesh(spHgeometry, red);
+    scene.add(pt);
+
+    pt.position.copy(cp);
+});
+
+rowB.forEach(cp => {
+    var pt = new THREE.Mesh(spHgeometry, red);
+    scene.add(pt);
+
+    pt.position.copy(cp);
+});
+
+
+
+
+
+
+
+
+
+
 
 renderer.render(scene, camera);
 
